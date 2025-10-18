@@ -454,125 +454,137 @@ with tabs[0]:
     st.subheader("⏰ Hourly Submissions – Combined Patrol Overview")
 
     # --- Radio selector for data mode ---
-    status_mode_hour = st.radio(
-        "Display Mode",
-        options=[ "total submissions", "total submissions (stacked)", "total issues reported", "total issues reported (stacked)"],
-        index=1,
-        horizontal=True,
-        key="hourly_status_mode_patrolling_stacked"
-    )
+    # Create two columns: left for selector, right for chart
+    left_col, right_col = st.columns([1, 6])  # adjust ratio as needed
 
-    # --- Prepare base data ---
-    df_patrol["Created_At"] = pd.to_datetime(df_patrol["Created_At"], errors="coerce")
-    df_patrol["Hour"] = df_patrol["Created_At"].dt.hour
-
-    # Filter subsets
-    df_no = df_patrol[df_patrol["Status"].astype(str).str.strip() == "नहीं"].copy()
-    df_yes = df_patrol[df_patrol["Status"].astype(str).str.strip() == "हाँ"].copy()
-
-
-    # Safety check
-    if "Issue" not in df_no.columns:
-        st.error("❌ 'Issue' column missing in data.")
-        st.stop()
-
-    # --- Mode 1️⃣: “नहीं only” (still split by Issue) ---
-    if status_mode_hour == "total issues reported (stacked)":
-        hourly_issue = (
-            df_no.groupby(["Hour", "Issue"])
-            .size()
-            .reset_index(name="Count")
-            .sort_values(["Hour", "Count"], ascending=[True, False])
-        )
-        order = ["छुट्टा पशु", "सड़क पर पार्किंग", "दुर्घटना", "अन्य"]
+    with left_col:
         
-        fig_hour = px.bar(
-            hourly_issue,
-            x="Hour",
-            y="Count",
-            color="Issue",
-            title="Hourly Reports (Status='नहीं' by Issue)",
-            barmode="stack",  # 🔹 stacked bars (within नहीं)
-            category_orders={"Issue": order},   # <<< enforce order
-            color_discrete_map={
-                "छुट्टा पशु": "red",
-                "सड़क पर पार्किंग": "green",
-                "अन्य": "orange",
-                "दुर्घटना": "yellow",
-            },
+        status_mode_hour = st.radio(
+            "Choose Mode",
+            options=[
+                "total submissions",
+                "total submissions (stacked)",
+                "total issues reported",
+                "total issues reported (stacked)",
+            ],
+            index=1,
+            horizontal=False,  # 🔹 vertical layout
+            key="hourly_status_mode_patrolling_stacked_total",
         )
-
-    elif status_mode_hour == "total issues reported":
-        plot_df = df_no
-        plot_df["Created_At"] = pd.to_datetime(plot_df["Created_At"])
-        plot_df["Hour"] = plot_df["Created_At"].dt.hour
-        hourly = (plot_df.groupby("Hour").size().reset_index(name="Count"))
-        fig_hour = px.bar(hourly, x="Hour", y="Count", title="Reports by Hour new")
         
-    elif status_mode_hour == "total submissions":
-        plot_df = df_patrol
+    with right_col:
+    
+        # --- Prepare base data ---
+        df_patrol["Created_At"] = pd.to_datetime(df_patrol["Created_At"], errors="coerce")
+        df_patrol["Hour"] = df_patrol["Created_At"].dt.hour
 
-        plot_df["Created_At"] = pd.to_datetime(plot_df["Created_At"])
-        plot_df["Hour"] = plot_df["Created_At"].dt.hour
-        hourly = (plot_df.groupby("Hour").size().reset_index(name="Count"))
-        fig_hour = px.bar(hourly, x="Hour", y="Count", title="Reports by Hour")
-        
-    # --- Mode 2️⃣: “Both statuses” (हाँ as base, Issues stacked on top) ---
-    else:
-        # Add a unified label field
-        df_no["Status_Label"] = df_no["Issue"].astype(str)
-        df_yes["Status_Label"] = "हाँ"
+        # Filter subsets
+        df_no = df_patrol[df_patrol["Status"].astype(str).str.strip() == "नहीं"].copy()
+        df_yes = df_patrol[df_patrol["Status"].astype(str).str.strip() == "हाँ"].copy()
 
-        df_combined = pd.concat([df_yes, df_no], ignore_index=True)
 
-        # Group by hour + label
-        hourly_combined = (
-            df_combined.groupby(["Hour", "Status_Label"])
-            .size()
-            .reset_index(name="Count")
-            .sort_values(["Hour", "Count"], ascending=[True, False])
+        # Safety check
+        if "Issue" not in df_no.columns:
+            st.error("❌ 'Issue' column missing in data.")
+            st.stop()
+
+        # --- Mode 1️⃣: “नहीं only” (still split by Issue) ---
+        if status_mode_hour == "total issues reported (stacked)":
+            hourly_issue = (
+                df_no.groupby(["Hour", "Issue"])
+                .size()
+                .reset_index(name="Count")
+                .sort_values(["Hour", "Count"], ascending=[True, False])
+            )
+            order = ["छुट्टा पशु", "सड़क पर पार्किंग", "दुर्घटना", "अन्य"]
+            
+            fig_hour = px.bar(
+                hourly_issue,
+                x="Hour",
+                y="Count",
+                color="Issue",
+                title="Hourly Reports (Status='नहीं' by Issue)",
+                barmode="stack",  # 🔹 stacked bars (within नहीं)
+                category_orders={"Issue": order},   # <<< enforce order
+                color_discrete_map={
+                    "छुट्टा पशु": "red",
+                    "सड़क पर पार्किंग": "green",
+                    "अन्य": "orange",
+                    "दुर्घटना": "yellow",
+                },
+            )
+
+        elif status_mode_hour == "total issues reported":
+            plot_df = df_no
+            plot_df["Created_At"] = pd.to_datetime(plot_df["Created_At"])
+            plot_df["Hour"] = plot_df["Created_At"].dt.hour
+            hourly = (plot_df.groupby("Hour").size().reset_index(name="Count"))
+            fig_hour = px.bar(hourly, x="Hour", y="Count", title="Reports by Hour new")
+            
+        elif status_mode_hour == "total submissions":
+            plot_df = df_patrol
+
+            plot_df["Created_At"] = pd.to_datetime(plot_df["Created_At"])
+            plot_df["Hour"] = plot_df["Created_At"].dt.hour
+            hourly = (plot_df.groupby("Hour").size().reset_index(name="Count"))
+            fig_hour = px.bar(hourly, x="Hour", y="Count", title="Reports by Hour")
+            
+        # --- Mode 2️⃣: “Both statuses” (हाँ as base, Issues stacked on top) ---
+        else:
+            # Add a unified label field
+            df_no["Status_Label"] = df_no["Issue"].astype(str)
+            df_yes["Status_Label"] = "हाँ"
+
+            df_combined = pd.concat([df_yes, df_no], ignore_index=True)
+
+            # Group by hour + label
+            hourly_combined = (
+                df_combined.groupby(["Hour", "Status_Label"])
+                .size()
+                .reset_index(name="Count")
+                .sort_values(["Hour", "Count"], ascending=[True, False])
+            )
+            order = ["हाँ", "छुट्टा पशु", "सड़क पर पार्किंग", "दुर्घटना", "अन्य"]
+            fig_hour = px.bar(
+                hourly_combined,
+                x="Hour",
+                y="Count",
+                color="Status_Label",
+                title="Hourly Patrol Submissions (हाँ base + Issues stacked)",
+                barmode="stack",  # 🔹 stack हाँ at bottom, issues on top
+                category_orders={"Status_Label": order},   # <<< enforce order
+                color_discrete_map={
+                    "हाँ": "blue",
+                    "छुट्टा पशु": "red",
+                    "सड़क पर पार्किंग": "green",
+                    "दुर्घटना": "yellow",
+                    "अन्य" : "orange"
+                },
+            )
+
+        # --- Common layout styling ---
+        fig_hour.update_layout(
+            xaxis_title="Hour of the Day",
+            yaxis_title="Total Patrol Submissions",
+            bargap=0.15,
+            hovermode="x unified",
+            height=450,
+            margin=dict(t=50, b=40, l=40, r=40),
+            legend=dict(
+                title="Status / Issue Type",
+                orientation="v",
+                yanchor="top",
+                y=1,
+                xanchor="left",
+                x=1.02,
+                bgcolor="rgba(255,255,255,0.85)",
+                bordercolor="rgba(0,0,0,0.2)",
+                borderwidth=1,
+            ),
         )
-        order = ["हाँ", "छुट्टा पशु", "सड़क पर पार्किंग", "दुर्घटना", "अन्य"]
-        fig_hour = px.bar(
-            hourly_combined,
-            x="Hour",
-            y="Count",
-            color="Status_Label",
-            title="Hourly Patrol Submissions (हाँ base + Issues stacked)",
-            barmode="stack",  # 🔹 stack हाँ at bottom, issues on top
-            category_orders={"Status_Label": order},   # <<< enforce order
-            color_discrete_map={
-                "हाँ": "blue",
-                "छुट्टा पशु": "red",
-                "सड़क पर पार्किंग": "green",
-                "दुर्घटना": "yellow",
-                "अन्य" : "orange"
-            },
-        )
 
-    # --- Common layout styling ---
-    fig_hour.update_layout(
-        xaxis_title="Hour of the Day",
-        yaxis_title="Total Patrol Submissions",
-        bargap=0.15,
-        hovermode="x unified",
-        height=450,
-        margin=dict(t=50, b=40, l=40, r=40),
-        legend=dict(
-            title="Status / Issue Type",
-            orientation="v",
-            yanchor="top",
-            y=1,
-            xanchor="left",
-            x=1.02,
-            bgcolor="rgba(255,255,255,0.85)",
-            bordercolor="rgba(0,0,0,0.2)",
-            borderwidth=1,
-        ),
-    )
-
-    # --- Render chart ---
-    st.plotly_chart(fig_hour, width='content')
+        # --- Render chart ---
+        st.plotly_chart(fig_hour, width='content')
 
     
     # 9️⃣ Full patrol data table (only selected columns)
@@ -985,7 +997,7 @@ with tabs[1]:
                 ],
                 index=1,
                 horizontal=False,  # 🔹 vertical layout
-                key="hourly_status_mode_patrolling_stacked_total",
+                key="hourly_status_mode_patrolling_stacked_tota",
             )
             
         with right_col:
