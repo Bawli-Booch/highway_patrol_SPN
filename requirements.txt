@@ -1,0 +1,15 @@
+# Core dashboard dependencies
+streamlit>=1.36.0
+pandas>=2.1.0
+plotly>=5.22.0
+requests>=2.31.0
+scikit-learn>=1.3.0
+folium
+numpy
+
+# Optional: for private Google Sheets access (if needed)
+gspread>=5.11.3
+oauth2client>=4.1.3
+
+# 🔥 Performance improvement for Streamlit file watching
+watchdog>=3.0.0
