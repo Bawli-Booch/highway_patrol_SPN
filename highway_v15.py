@@ -8,6 +8,7 @@ from folium.plugins import MarkerCluster
 from streamlit.components.v1 import html
 import base64
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import os
 os.environ["MAPBOX_API_KEY"] = "pk.eyJ1Ijoic3RyZWFtbGl0IiwiYSI6ImNqd2d4enVmNTAwNGY0M3A1cGhzZzI4emgifQ.Cf1bOmWqkJpXyYh0SgYz_g"
 
@@ -352,8 +353,16 @@ with tabs[0]:
 
     
     # 2️⃣ Filter for recent patrol window (8 PM yesterday → now)
-    now = datetime.now()
+    # Current IST time
+    now_ist = datetime.now(ZoneInfo("Asia/Kolkata"))
+    # Remove timezone info (make tz-naive)
+    now = now_ist.replace(tzinfo=None)
     yesterday_8pm = (now - timedelta(days=1)).replace(hour=20, minute=0, second=0, microsecond=0)
+
+    # Ensure dataframe is tz-naive
+    df["Created_At"] = pd.to_datetime(df["Created_At"], errors="coerce")
+
+    # ✅ Compare safely
     df_patrol = df[
         (pd.to_datetime(df["Created_At"]) >= yesterday_8pm)
         & (pd.to_datetime(df["Created_At"]) <= now)
