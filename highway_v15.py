@@ -1,3 +1,5 @@
+
+
 # Put this near the top of your script (after imports)
 import streamlit as st
 import pandas as pd
@@ -11,6 +13,8 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import os
 os.environ["MAPBOX_API_KEY"] = "pk.eyJ1Ijoic3RyZWFtbGl0IiwiYSI6ImNqd2d4enVmNTAwNGY0M3A1cGhzZzI4emgifQ.Cf1bOmWqkJpXyYh0SgYz_g"
+
+
 
 #remove top padding
 st.set_page_config(layout="wide")
@@ -592,8 +596,19 @@ with tabs[0]:
             ),
         )
 
-        # --- Render chart ---
-        st.plotly_chart(fig_hour, width='content')
+        # ✅ NEW: Use `config` dict ONLY — no deprecated kwargs
+        plotly_config = {
+            "scrollZoom": True,
+            "displayModeBar": True,  # optional; set False to hide toolbar
+            "modeBarButtonsToRemove": ["pan2d", "lasso2d"],
+            "toImageButtonOptions": {"format": "png", "filename": "hourly_chart"},
+            "showTips": False,
+        }
+
+        # ✅ Clean rendering — no deprecated args, no warnings
+        st.plotly_chart(fig_hour, use_container_width=True, config=plotly_config)
+
+
 
     
     # 9️⃣ Full patrol data table (only selected columns)
@@ -664,6 +679,7 @@ with tabs[1]:
             return
 
         # ✅ Create interactive bar chart
+        # ✅ Create interactive bar chart
         fig = px.bar(
             grouped,
             x=group_cols[0],
@@ -673,16 +689,40 @@ with tabs[1]:
             barmode="group",
         )
 
+        # ✅ Modern Plotly layout (no deprecation warnings)
         fig.update_layout(
             xaxis_title=group_cols[0],
             yaxis_title="Count",
             showlegend=True,
             xaxis_tickangle=-45,
             height=500,
+            margin=dict(t=50, b=40, l=40, r=40),
+            hovermode="x unified",
+            bargap=0.15,
+            legend=dict(
+                orientation="v",
+                yanchor="top",
+                y=1,
+                xanchor="left",
+                x=1.02,
+                bgcolor="rgba(255,255,255,0.85)",
+                bordercolor="rgba(0,0,0,0.2)",
+                borderwidth=1,
+            ),
         )
 
-        config = {"displayModeBar": False, "scrollZoom": True}
-        st.plotly_chart(fig, width='stretch', config=config)
+        # ✅ Use `config` dict ONLY (modern standard)
+        plotly_config = {
+            "scrollZoom": True,
+            "displayModeBar": True,   # optional; set False to hide toolbar
+            "modeBarButtonsToRemove": ["pan2d", "lasso2d"],
+            "toImageButtonOptions": {"format": "png", "filename": "hourly_chart"},
+            "showTips": False,
+            "responsive": True,
+        }
+
+        # ✅ Modern Streamlit render call (replaces deprecated width='stretch')
+        st.plotly_chart(fig, use_container_width=True, config=plotly_config)
 
         # =====================================================
         # 📊 Pivoted Table for Cleaner Display
@@ -813,7 +853,7 @@ with tabs[1]:
 
 
     with sub_tabs[6]:
-        st.subheader("Daily Issue-wise (date-wise)")
+        st.subheader("📅 Daily Issue-wise (Date-wise Analysis)")
 
         # ============================================================
         # ⏰ Daily Submission Chart (Stacked: हाँ as base + Issues)
@@ -821,12 +861,12 @@ with tabs[1]:
 
         st.subheader("Daily Submissions – Combined Patrol Overview")
 
-        # Create two columns: left for selector, right for chart
-        left_col, right_col = st.columns([1, 6])  # adjust ratio as needed
+        # --- Layout: selector (left) and chart (right) ---
+        left_col, right_col = st.columns([1.2, 6])
 
         with left_col:
             status_mode_date = st.radio(
-                "Choose Mode",
+                "📊 Select Data Mode",
                 options=[
                     "total submissions",
                     "total submissions (stacked)",
@@ -834,25 +874,35 @@ with tabs[1]:
                     "total issues reported (stacked)",
                 ],
                 index=1,
-                horizontal=False,  # 🔹 vertical layout
+                horizontal=False,
                 key="daily_status_mode_patrolling_stacked_total",
             )
 
         with right_col:
+            # --- Prepare Data ---
             df_patrol = df.copy()
             df_patrol["Created_At"] = pd.to_datetime(df_patrol["Created_At"], errors="coerce")
             df_patrol["Date"] = df_patrol["Created_At"].dt.date
 
-            # Filter subsets
             df_no = df_patrol[df_patrol["Status"].astype(str).str.strip() == "नहीं"].copy()
             df_yes = df_patrol[df_patrol["Status"].astype(str).str.strip() == "हाँ"].copy()
 
-            # Safety check
+            # Safety check for Issue column
             if "Issue" not in df_no.columns:
                 st.error("❌ 'Issue' column missing in data.")
                 st.stop()
 
-            # --- Mode 1️⃣: total issues reported (stacked) ---
+            # --- Define color and order globally ---
+            color_map = {
+                "हाँ": "blue",
+                "छुट्टा पशु": "red",
+                "सड़क पर पार्किंग": "green",
+                "दुर्घटना": "yellow",
+                "अन्य": "orange",
+            }
+            order = ["हाँ", "छुट्टा पशु", "सड़क पर पार्किंग", "दुर्घटना", "अन्य"]
+
+            # --- Handle different view modes ---
             if status_mode_date == "total issues reported (stacked)":
                 daily = (
                     df_no.groupby(["Date", "Issue"])
@@ -860,42 +910,49 @@ with tabs[1]:
                     .reset_index(name="Count")
                     .sort_values(["Date", "Count"], ascending=[True, False])
                 )
-                order = ["छुट्टा पशु", "सड़क पर पार्किंग", "दुर्घटना", "अन्य"]
-
                 fig_daily = px.bar(
                     daily,
                     x="Date",
                     y="Count",
                     color="Issue",
                     barmode="stack",
-                    category_orders={"Issue": order},
-                    color_discrete_map={
-                        "छुट्टा पशु": "red",
-                        "सड़क पर पार्किंग": "green",
-                        "अन्य": "orange",
-                        "दुर्घटना": "yellow",
-                    },
+                    category_orders={"Issue": order[1:]},  # exclude "हाँ"
+                    color_discrete_map=color_map,
+                    title="Daily Reports by Issue (Status='नहीं')",
                 )
 
-            # --- Mode 2️⃣: total issues reported ---
             elif status_mode_date == "total issues reported":
-                plot_df = df_no
-                plot_df["Created_At"] = pd.to_datetime(plot_df["Created_At"])
-                plot_df["Date"] = plot_df["Created_At"].dt.date
-                daily = plot_df.groupby("Date").size().reset_index(name="Count")
-                fig_daily = px.bar(daily, x="Date", y="Count", title="Daily Reports (Status='नहीं')")
+                daily = (
+                    df_no.groupby("Date")
+                    .size()
+                    .reset_index(name="Count")
+                    .sort_values("Date")
+                )
+                fig_daily = px.bar(
+                    daily,
+                    x="Date",
+                    y="Count",
+                    title="Total Issues Reported per Day (Status='नहीं')",
+                    color_discrete_sequence=["red"],
+                )
 
-            # --- Mode 3️⃣: total submissions ---
             elif status_mode_date == "total submissions":
-                plot_df = df_patrol
-                plot_df["Created_At"] = pd.to_datetime(plot_df["Created_At"])
-                plot_df["Date"] = plot_df["Created_At"].dt.date
-                daily = plot_df.groupby("Date").size().reset_index(name="Count")
-                fig_daily = px.bar(daily, x="Date", y="Count", title="Total Submissions per day")
+                daily = (
+                    df_patrol.groupby("Date")
+                    .size()
+                    .reset_index(name="Count")
+                    .sort_values("Date")
+                )
+                fig_daily = px.bar(
+                    daily,
+                    x="Date",
+                    y="Count",
+                    title="Total Submissions per Day",
+                    color_discrete_sequence=["blue"],
+                )
 
-            # --- Mode 4️⃣: total submissions (stacked) ---
-            else:
-                df_no["Status_Label"] = df_no["Issue"].astype(str)
+            else:  # total submissions (stacked)
+                df_no["Status_Label"] = df_no["Issue"].astype(str).replace({"": "अन्य", "nan": "अन्य"})
                 df_yes["Status_Label"] = "हाँ"
 
                 df_combined = pd.concat([df_yes, df_no], ignore_index=True)
@@ -907,7 +964,6 @@ with tabs[1]:
                     .sort_values(["Date", "Count"], ascending=[True, False])
                 )
 
-                order = ["हाँ", "छुट्टा पशु", "सड़क पर पार्किंग", "दुर्घटना", "अन्य"]
                 fig_daily = px.bar(
                     daily,
                     x="Date",
@@ -915,16 +971,11 @@ with tabs[1]:
                     color="Status_Label",
                     barmode="stack",
                     category_orders={"Status_Label": order},
-                    color_discrete_map={
-                        "हाँ": "blue",
-                        "छुट्टा पशु": "red",
-                        "सड़क पर पार्किंग": "green",
-                        "दुर्घटना": "yellow",
-                        "अन्य": "orange",
-                    },
+                    color_discrete_map=color_map,
+                    title="Daily Patrol Submissions by Status / Issue",
                 )
 
-            # --- Common layout styling ---
+            # --- Modern layout ---
             fig_daily.update_layout(
                 xaxis_title="Date",
                 yaxis_title="Total Patrol Submissions",
@@ -942,62 +993,83 @@ with tabs[1]:
                     bgcolor="rgba(255,255,255,0.85)",
                     bordercolor="rgba(0,0,0,0.2)",
                     borderwidth=1,
+                    font=dict(size=12),
                 ),
             )
 
+            # --- Plot config ---
+            plotly_config = {
+                "scrollZoom": True,
+                "displayModeBar": True,
+                "modeBarButtonsToRemove": ["pan2d", "lasso2d"],
+                "toImageButtonOptions": {"format": "png", "filename": "daily_patrol_chart"},
+                "showTips": False,
+                "responsive": True,
+            }
+
             # --- Render chart ---
-            st.plotly_chart(fig_daily, width='content')
+            st.plotly_chart(fig_daily, use_container_width=True, config=plotly_config)
 
-        
+        # ============================================================
+        # 📊 Data Table (Pivoted Daily Data)
+        # ============================================================
+
         st.markdown("---")
-        st.markdown("### Data (Daily counts)")
-        # --- daily Data Pivot Table ---
-        st.markdown("### 📊 Daily Data (Pivoted View)")
+        st.markdown("### 📋 Daily Data (Pivoted Summary)")
 
-        # Ensure we have the full daily dataframe
         if not daily.empty:
-            # Pivot data so each status/issue becomes a column
+            # ✅ Ensure Status_Label exists
+            if "Status_Label" not in daily.columns:
+                daily["Status_Label"] = daily.get("Issue", "अन्य")
+
+            # ✅ Pivot data
             pivot_daily = (
                 daily
-                .pivot(index="Date", columns="Status_Label", values="Count")  # 🧩 Status_Label = हाँ / Issue
+                .pivot(index="Date", columns="Status_Label", values="Count")
                 .fillna(0)
                 .astype(int)
                 .reset_index()
             )
 
-            # Enforce consistent column order if available
+            # ✅ Maintain consistent column order
             ordered_cols = ["Date", "हाँ", "छुट्टा पशु", "सड़क पर पार्किंग", "दुर्घटना", "अन्य"]
-            existing_cols = [c for c in ordered_cols if c in pivot_daily.columns]
-            pivot_daily = pivot_daily[existing_cols]
+            pivot_daily = pivot_daily[[c for c in ordered_cols if c in pivot_daily.columns]]
 
-            
-            # Display clean centered table
-            #st.dataframe(styled_pivot, use_container_width=True)
-            st.dataframe(df_center_numeric(pivot_daily), width='stretch')
+            # ✅ Center-align numbers
+            def df_center_numeric(df):
+                styled = df.style.set_properties(**{'text-align': 'center'})
+                styled.set_table_styles([
+                    dict(selector='th', props=[('text-align', 'center')])
+                ])
+                return styled
+
+            st.dataframe(df_center_numeric(pivot_daily), use_container_width=True)
+
+            # ✅ Download button
             csv = pivot_daily.to_csv(index=False).encode("utf-8")
-            st.download_button("Download pivoted data ", csv, "pivoted.csv", "text/csv")
-    
-
+            st.download_button(
+                "⬇️ Download Pivoted Daily Data",
+                csv,
+                "daily_pivoted.csv",
+                "text/csv",
+            )
 
         else:
-            st.warning("⚠️ No hourly data available to display.")
-
+            st.warning("⚠️ No daily data available to display.")
 
     # Sub-tab 7: Hourly plot
     with sub_tabs[7]:
         # ============================================================
         # ⏰ Hourly Submission Chart (Stacked: हाँ as base + Issues)
         # ============================================================
-
         st.subheader("Hourly Submissions – Combined Patrol Overview")
 
-        # Create two columns: left for selector, right for chart
-        left_col, right_col = st.columns([1, 6])  # adjust ratio as needed
+        # --- Layout: left (selector) + right (chart) ---
+        left_col, right_col = st.columns([1.2, 6])
 
         with left_col:
-            
             status_mode_hour = st.radio(
-                "Choose Mode",
+                "📊 Choose Mode",
                 options=[
                     "total submissions",
                     "total submissions (stacked)",
@@ -1005,23 +1077,34 @@ with tabs[1]:
                     "total issues reported (stacked)",
                 ],
                 index=1,
-                horizontal=False,  # 🔹 vertical layout
-                key="hourly_status_mode_patrolling_stacked_tota",
+                horizontal=False,
+                key="hourly_status_mode_patrolling_stacked_total_",
             )
-            
+
         with right_col:
+            # --- Prepare Data ---
             df_patrol = df.copy()
             df_patrol["Created_At"] = pd.to_datetime(df_patrol["Created_At"], errors="coerce")
             df_patrol["Hour"] = df_patrol["Created_At"].dt.hour
 
-            # Filter subsets
+            # --- Filter subsets ---
             df_no = df_patrol[df_patrol["Status"].astype(str).str.strip() == "नहीं"].copy()
             df_yes = df_patrol[df_patrol["Status"].astype(str).str.strip() == "हाँ"].copy()
 
-            # Safety check
+            # --- Safety check ---
             if "Issue" not in df_no.columns:
                 st.error("❌ 'Issue' column missing in data.")
                 st.stop()
+
+            # --- Define color and order globally ---
+            color_map = {
+                "हाँ": "blue",
+                "छुट्टा पशु": "red",
+                "सड़क पर पार्किंग": "green",
+                "दुर्घटना": "yellow",
+                "अन्य": "orange",
+            }
+            order = ["हाँ", "छुट्टा पशु", "सड़क पर पार्किंग", "दुर्घटना", "अन्य"]
 
             # --- Mode 1️⃣: total issues reported (stacked) ---
             if status_mode_hour == "total issues reported (stacked)":
@@ -1031,8 +1114,6 @@ with tabs[1]:
                     .reset_index(name="Count")
                     .sort_values(["Hour", "Count"], ascending=[True, False])
                 )
-                order = ["छुट्टा पशु", "सड़क पर पार्किंग", "दुर्घटना", "अन्य"]
-
                 fig_hour = px.bar(
                     hourly,
                     x="Hour",
@@ -1040,34 +1121,45 @@ with tabs[1]:
                     color="Issue",
                     title="Hourly Reports (Status='नहीं' by Issue)",
                     barmode="stack",
-                    category_orders={"Issue": order},
-                    color_discrete_map={
-                        "छुट्टा पशु": "red",
-                        "सड़क पर पार्किंग": "green",
-                        "अन्य": "orange",
-                        "दुर्घटना": "yellow",
-                    },
+                    category_orders={"Issue": order[1:]},
+                    color_discrete_map=color_map,
                 )
 
             # --- Mode 2️⃣: total issues reported ---
             elif status_mode_hour == "total issues reported":
-                plot_df = df_no
-                plot_df["Created_At"] = pd.to_datetime(plot_df["Created_At"])
-                plot_df["Hour"] = plot_df["Created_At"].dt.hour
-                hourly = plot_df.groupby("Hour").size().reset_index(name="Count")
-                fig_hour = px.bar(hourly, x="Hour", y="Count", title="Hourly Reports (Status='नहीं')")
+                hourly = (
+                    df_no.groupby("Hour")
+                    .size()
+                    .reset_index(name="Count")
+                    .sort_values("Hour")
+                )
+                fig_hour = px.bar(
+                    hourly,
+                    x="Hour",
+                    y="Count",
+                    title="Hourly Reports (Status='नहीं')",
+                    color_discrete_sequence=["red"],
+                )
 
             # --- Mode 3️⃣: total submissions ---
             elif status_mode_hour == "total submissions":
-                plot_df = df_patrol
-                plot_df["Created_At"] = pd.to_datetime(plot_df["Created_At"])
-                plot_df["Hour"] = plot_df["Created_At"].dt.hour
-                hourly = plot_df.groupby("Hour").size().reset_index(name="Count")
-                fig_hour = px.bar(hourly, x="Hour", y="Count", title="Total Submissions per Hour")
+                hourly = (
+                    df_patrol.groupby("Hour")
+                    .size()
+                    .reset_index(name="Count")
+                    .sort_values("Hour")
+                )
+                fig_hour = px.bar(
+                    hourly,
+                    x="Hour",
+                    y="Count",
+                    title="Total Submissions per Hour",
+                    color_discrete_sequence=["blue"],
+                )
 
             # --- Mode 4️⃣: total submissions (stacked) ---
             else:
-                df_no["Status_Label"] = df_no["Issue"].astype(str)
+                df_no["Status_Label"] = df_no["Issue"].astype(str).replace({"": "अन्य", "nan": "अन्य"})
                 df_yes["Status_Label"] = "हाँ"
 
                 df_combined = pd.concat([df_yes, df_no], ignore_index=True)
@@ -1079,7 +1171,6 @@ with tabs[1]:
                     .sort_values(["Hour", "Count"], ascending=[True, False])
                 )
 
-                order = ["हाँ", "छुट्टा पशु", "सड़क पर पार्किंग", "दुर्घटना", "अन्य"]
                 fig_hour = px.bar(
                     hourly,
                     x="Hour",
@@ -1087,16 +1178,11 @@ with tabs[1]:
                     color="Status_Label",
                     barmode="stack",
                     category_orders={"Status_Label": order},
-                    color_discrete_map={
-                        "हाँ": "blue",
-                        "छुट्टा पशु": "red",
-                        "सड़क पर पार्किंग": "green",
-                        "दुर्घटना": "yellow",
-                        "अन्य": "orange",
-                    },
+                    color_discrete_map=color_map,
+                    title="Hourly Patrol Submissions (हाँ base + Issues stacked)",
                 )
 
-            # --- Common layout styling ---
+            # --- Layout ---
             fig_hour.update_layout(
                 xaxis_title="Hour of the Day",
                 yaxis_title="Total Patrol Submissions",
@@ -1114,46 +1200,68 @@ with tabs[1]:
                     bgcolor="rgba(255,255,255,0.85)",
                     bordercolor="rgba(0,0,0,0.2)",
                     borderwidth=1,
+                    font=dict(size=12),
                 ),
             )
 
-            # --- Render chart ---
-            st.plotly_chart(fig_hour, use_container_width=True)
+            # --- Modern Plotly config ---
+            plotly_config = {
+                "scrollZoom": True,
+                "displayModeBar": True,
+                "modeBarButtonsToRemove": ["pan2d", "lasso2d"],
+                "toImageButtonOptions": {"format": "png", "filename": "hourly_patrol_chart"},
+                "showTips": False,
+                "responsive": True,
+            }
 
-        
+            # --- Render chart safely ---
+            st.plotly_chart(fig_hour, use_container_width=True, config=plotly_config)
+
+        # ============================================================
+        # 📊 Data Table (Pivoted Hourly Data)
+        # ============================================================
         st.markdown("---")
-        
-        # --- Hourly Data Pivot Table ---
-        st.markdown("### 📊 Hourly Data (Pivoted View)")
+        st.markdown("### 📋 Hourly Data (Pivoted Summary)")
 
-        # Ensure we have the full hourly dataframe
         if not hourly.empty:
-            # Pivot data so each status/issue becomes a column
+            # ✅ Ensure Status_Label exists
+            if "Status_Label" not in hourly.columns:
+                hourly["Status_Label"] = hourly.get("Issue", "अन्य")
+
+            # ✅ Pivot data
             pivot_hourly = (
                 hourly
-                .pivot(index="Hour", columns="Status_Label", values="Count")  # 🧩 Status_Label = हाँ / Issue
+                .pivot(index="Hour", columns="Status_Label", values="Count")
                 .fillna(0)
                 .astype(int)
                 .reset_index()
             )
 
-            # Enforce consistent column order if available
+            # ✅ Enforce column order
             ordered_cols = ["Hour", "हाँ", "छुट्टा पशु", "सड़क पर पार्किंग", "दुर्घटना", "अन्य"]
-            existing_cols = [c for c in ordered_cols if c in pivot_hourly.columns]
-            pivot_hourly = pivot_hourly[existing_cols]
+            pivot_hourly = pivot_hourly[[c for c in ordered_cols if c in pivot_hourly.columns]]
 
-            
-            # Display clean centered table
-            #st.dataframe(styled_pivot, use_container_width=True)
-            st.dataframe(df_center_numeric(pivot_hourly), width='stretch')
+            # ✅ Center-align numbers
+            def df_center_numeric(df):
+                styled = df.style.set_properties(**{'text-align': 'center'})
+                styled.set_table_styles([
+                    dict(selector='th', props=[('text-align', 'center')])
+                ])
+                return styled
+
+            st.dataframe(df_center_numeric(pivot_hourly), use_container_width=True)
+
+            # ✅ Download button
             csv = pivot_hourly.to_csv(index=False).encode("utf-8")
-            st.download_button("Download pivoted data", csv, "pivoted.csv", "text/csv")
-    
-
+            st.download_button(
+                "⬇️ Download Pivoted Hourly Data",
+                csv,
+                "hourly_pivoted.csv",
+                "text/csv",
+            )
 
         else:
             st.warning("⚠️ No hourly data available to display.")
-
 
 
         
@@ -1204,10 +1312,51 @@ with tabs[3]:
     st.title("Overview Dashboard")
 
     daily_counts = df.groupby(["Date", "Status"]).size().reset_index(name="Count")
-    fig = px.bar(daily_counts, x="Date", y="Count", color="Status", barmode="group",
-                 title="Daily Submissions (including Not OK)")
-    config = {"displayModeBar": False, "scrollZoom": True}
-    st.plotly_chart(fig, width='stretch', config=config)
+    
+    #new bar
+    # --- Create the Plotly bar chart ---
+    fig = px.bar(
+        daily_counts,
+        x="Date",
+        y="Count",
+        color="Status",
+        barmode="group",
+        title="Daily Submissions (including Not OK)"
+    )
+
+    # --- Safe and modern layout styling ---
+    fig.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Total Submissions",
+        height=500,
+        bargap=0.15,
+        hovermode="x unified",
+        margin=dict(t=50, b=40, l=40, r=40),
+        legend=dict(
+            title="Status",
+            orientation="v",
+            yanchor="top",
+            y=1,
+            xanchor="left",
+            x=1.02,
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor="rgba(0,0,0,0.2)",
+            borderwidth=1,
+        ),
+    )
+
+    # --- ✅ Modern Plotly config (no deprecated keyword args) ---
+    plotly_config = {
+        "scrollZoom": True,
+        "displayModeBar": True,   # set to False if you want to hide toolbar
+        "modeBarButtonsToRemove": ["pan2d", "lasso2d"],
+        "toImageButtonOptions": {"format": "png", "filename": "daily_submissions"},
+        "showTips": False,
+        "responsive": True,
+    }
+
+    # --- ✅ Safe Streamlit rendering (replaces width='stretch') ---
+    st.plotly_chart(fig, use_container_width=True, config=plotly_config)
 
 
     col1, col2, col3 = st.columns(3)
