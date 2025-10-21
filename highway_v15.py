@@ -448,6 +448,13 @@ with tabs[0]:
     center_lat = all_points["Latitude"].mean()
     center_lon = all_points["Longitude"].mean()
 
+    #conditional hover data display
+    # Show Issue_Details only if Status is "Not Okay"
+    all_points["Display_Issue_Details"] = all_points.apply(
+        lambda x: x["Issue_Details"] if x["Issue"] == "अन्य" else None,
+        axis=1
+    )
+
     # 7️⃣ Build the Plotly map
     fig = px.scatter_mapbox(
         all_points,
@@ -459,7 +466,7 @@ with tabs[0]:
             "Agent": True,
             "Status": True,
             "Issue": True,
-            "Issue_Details": True,
+            "Display_Issue_Details": True,
             "BDO": True,
             "Circle": True,
             "SDM": True,
