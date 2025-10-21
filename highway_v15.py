@@ -451,7 +451,7 @@ with tabs[0]:
     #conditional hover data display
     # Show Issue_Details only if Status is "Not Okay"
     all_points["Display_Issue_Details"] = all_points.apply(
-        lambda x: x["Issue_Details"] if x["Issue"] == "अन्य" else None,
+        lambda x: x["Issue_Details"] if x["Issue"] == "अन्य" and x["Issue_Details"] else None,
         axis=1
     )
 
