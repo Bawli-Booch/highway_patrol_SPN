@@ -14,6 +14,57 @@ from zoneinfo import ZoneInfo
 import os
 os.environ["MAPBOX_API_KEY"] = "pk.eyJ1Ijoic3RyZWFtbGl0IiwiYSI6ImNqd2d4enVmNTAwNGY0M3A1cGhzZzI4emgifQ.Cf1bOmWqkJpXyYh0SgYz_g"
 
+#remove streamlit header and footer
+
+
+# --- Hide all Streamlit UI and Cloud branding ---
+hide_streamlit_branding = """
+    <style>
+    /* Hide Streamlit main header and footer */
+    #MainMenu {visibility: hidden !important;}
+    header {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+
+    /* Hide possible Streamlit Cloud floating buttons */
+    [data-testid="stStatusWidget"] {display: none !important;}
+    [data-testid="stDecoration"] {display: none !important;}
+    [data-testid="stToolbar"] {display: none !important;}
+    [data-testid="stDecorationContainer"] {display: none !important;}
+    .stAppDeployButton {display: none !important;}
+    button[data-testid="manage-app-button"] {display: none !important;}
+    div[class*="_link_"] {display: none !important;}
+    div[title="Manage app"] {display: none !important;}
+    div[data-testid="stActionButton"] {display: none !important;}
+    
+    /* 👇 Key trick: globally hide any Streamlit Cloud bottom-right floating button */
+    [class*="st-emotion-cache"] button[title*="Manage"], 
+    [class*="st-emotion-cache"] button[title*="View"],
+    [class*="st-emotion-cache"] a[href*="streamlit.app"],
+    [class*="st-emotion-cache"] svg[xmlns*="http"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+
+    /* Hide Streamlit Cloud overlay container completely */
+    div[style*="position: fixed"][style*="right: 0px"][style*="bottom: 0px"] {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
+    </style>
+
+    <script>
+    // In case Streamlit Cloud injects after render — try removing again
+    const hideCloudButton = () => {
+        const elems = document.querySelectorAll('button[title*="Manage"], button[title*="View"], a[href*="streamlit.app"], div[class*="_link_"]');
+        elems.forEach(el => el.style.display = "none");
+    };
+    setInterval(hideCloudButton, 1500);
+    </script>
+"""
+st.markdown(hide_streamlit_branding, unsafe_allow_html=True)
 
 
 #remove top padding
