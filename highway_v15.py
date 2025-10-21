@@ -1415,5 +1415,46 @@ with tabs[3]:
     col2.metric("Not OK Submissions", df[df["Status"].astype(str).str.strip() == "नहीं"].shape[0])
     col3.metric("Unique Agents", df["Agent"].nunique() )
 
+# -----------------------------------------------
+# 📊 GOOGLE SHEET DATA DOWNLOAD SECTION
+# -----------------------------------------------
+import io
+st.markdown("---")
+st.markdown("##### 📁 Download Full Google Sheet Data")
+
+# Assume your full dataframe is df_raw or df
+data_to_download = df_raw.copy() if "df_raw" in locals() else df.copy()
+
+# Convert to Excel in memory
+to_excel = io.BytesIO()
+data_to_download.to_excel(to_excel, index=False, sheet_name="Full_Data")
+to_excel.seek(0)
+
+# Center-aligned button using columns
+c1, c2, c3 = st.columns([1, 1, 1])
+with c1:
+    st.download_button(
+        label="⬇️ Download Full Data as Excel",
+        data=to_excel,
+        file_name="cyber_dashboard_data.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        use_container_width=True,
+    )
+
+# --- Center-aligned download button ---
+# Create 3 equal columns and place the button in the center one
+with c3:
+    # The actual button
+    if st.button("Fetch / Refresh Data"):
+        st.session_state.sheet_url = sheet_input.strip()
+        st.cache_data.clear()
+        st.rerun()
+
+st.markdown("---")
+
+# Footer
+st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
+st.markdown("<div class='footer'>© Cyber Cell Shahjahanpur · Highway Patrol Dashboard</div>", unsafe_allow_html=True)
+st.markdown("---")
 
 # ------------------- END -------------------
