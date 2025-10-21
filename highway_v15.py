@@ -1423,11 +1423,11 @@ st.markdown("---")
 st.markdown("##### 📁 Download Full Google Sheet Data")
 
 # Assume your full dataframe is df_raw or df
-data_to_download = df_raw.copy() if "df_raw" in locals() else df.copy()
+data_to_download =  df.copy()
 
 # Convert to Excel in memory
 to_excel = io.BytesIO()
-data_to_download.to_excel(to_excel, index=False, sheet_name="Full_Data")
+data_to_download.to_excel(to_excel, index=False, sheet_name="Full_Data_excel")
 to_excel.seek(0)
 
 # Center-aligned button using columns
