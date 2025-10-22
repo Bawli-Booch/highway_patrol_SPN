@@ -1505,10 +1505,10 @@ with tabs[2]:
 with tabs[3]:
     #st.title("Overview Dashboard")
     dark_blue_hex = "#1272d2"
-        st.markdown(
-            f"<h3 style='text-align: center; color: {dark_blue_hex};'>Overview Dashboard</h3>",
-            unsafe_allow_html=True
-        )
+    st.markdown(
+        f"<h3 style='text-align: center; color: {dark_blue_hex};'>Overview Dashboard</h3>",
+        unsafe_allow_html=True
+    )
     
 
     daily_counts = df.groupby(["Date", "Status"]).size().reset_index(name="Count")
@@ -1571,10 +1571,10 @@ import io
 st.markdown("---")
 #st.markdown("##### 📁 Download Full Google Sheet Data")
 dark_blue_hex = "#1272d2"
-        st.markdown(
-            f"<h3 style='text-align: center; color: {dark_blue_hex};'>📁 Download Full Google Sheet Data</h3>",
-            unsafe_allow_html=True
-        )
+st.markdown(
+    f"<h3 style='text-align: center; color: {dark_blue_hex};'>📁 Download Full Google Sheet Data</h3>",
+    unsafe_allow_html=True
+)
     
 # Assume your full dataframe is df_raw or df
 data_to_download =  df.copy()
