@@ -404,8 +404,12 @@ st.markdown(
 # ====================================================
 
 with tabs[0]:
-    st.header("Daily Highway Patrol Data and Clusters")
-
+    # For example, #001f3f is a deep, dark blue.
+    dark_blue_hex = "#1272d2"
+    st.markdown(
+        f"<h3 style='text-align: center; color: {dark_blue_hex};'>Daily Highway Patrol Data and Clusters</h3>",
+        unsafe_allow_html=True
+    )
     
     # 2️⃣ Filter for recent patrol window (8 PM yesterday → now)
     # Current IST time
