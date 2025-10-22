@@ -426,13 +426,20 @@ with tabs[0]:
         & (pd.to_datetime(df["Created_At"]) <= now)
     ].copy()
 
-    st.write(f"📅 Showing records from **{yesterday_8pm.strftime('%d %b %Y %I:%M %p')}** → **{now.strftime('%d %b %Y %I:%M %p')}**")
-    st.write(f"Total patrol records: {len(df_patrol)}")
-
     # 3️⃣ Split data by Status
     df_no = df_patrol[df_patrol["Status"].astype(str).str.strip() == "नहीं"].copy()
     df_yes = df_patrol[df_patrol["Status"].astype(str).str.strip() == "हाँ"].copy()
 
+    #diplay overview summary
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown(f"""
+        📅 Showing records:  \n\
+        **{yesterday_8pm.strftime('%d %b %Y %I:%M %p')}** → **{now.strftime('%d %b %Y %I:%M %p')}**
+        """)
+    col2.metric(f"Total patrol records: ", len(df_patrol))
+    col3.metric(f"Total Issues Reported: ", len(df_no))
+    
     
     # 5️⃣ Color coding by Issue & Status
     issue_colors = {
