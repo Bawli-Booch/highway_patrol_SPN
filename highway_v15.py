@@ -132,7 +132,7 @@ rename_map = {
 # 🔹 Columns we want to display throughout the dashboard
 # ======================================================
 display_columns = [
-    "Date", "Time", "Agent", "Status", "Issue", "Police_Station",
+    "Created_At", "Date", "Time", "Agent", "Status", "Issue", "Police_Station",
     "Circle", "Block", "ULD", "SDM", "Route",
     "Latitude", "Longitude"
 ]
