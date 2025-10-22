@@ -1527,6 +1527,5 @@ st.markdown("---")
 # Footer
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 st.markdown("<div class='footer'>© Cyber Cell Shahjahanpur · Highway Patrol Dashboard</div>", unsafe_allow_html=True)
-st.markdown("---")
 
 # ------------------- END -------------------
