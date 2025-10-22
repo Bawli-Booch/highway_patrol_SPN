@@ -892,8 +892,13 @@ with tabs[1]:
 
 
     with sub_tabs[0]:
-        st.subheader("Duty thana and Issue-wise Analysis")
-
+        #st.subheader("Duty thana and Issue-wise Analysis")
+        # For example, #001f3f is a deep, dark blue.
+        dark_blue_hex = "#1272d2"
+        st.markdown(
+            f"<h3 style='text-align: center; color: {dark_blue_hex};'>Duty thana and Issue-wise Analysis</h3>",
+            unsafe_allow_html=True
+        )
         # ✅ Filter only 'Not OK' submissions
         not_ok_df = df[df["Status"].str.strip() == "नहीं"].copy()
 
@@ -926,8 +931,13 @@ with tabs[1]:
 
 
     with sub_tabs[1]:
-        st.subheader("Incident Station (जहाँ घटना हुई है ) and Issue-wise Analysis")
-
+        #st.subheader("Incident Station (जहाँ घटना हुई है ) and Issue-wise Analysis")
+        dark_blue_hex = "#1272d2"
+        st.markdown(
+            f"<h3 style='text-align: center; color: {dark_blue_hex};'>Incident Station (जहाँ घटना हुई है ) and Issue-wise Analysis</h3>",
+            unsafe_allow_html=True
+        )
+        
         # ✅ Keep only "Not OK" submissions
         not_ok_df = df[df["Status"].str.strip() == "नहीं"].copy()
 
@@ -960,34 +970,69 @@ with tabs[1]:
 
 
     with sub_tabs[2]:
-        st.subheader("BDO and Issue-wise Analysis")
+        
+        #st.subheader("BDO and Issue-wise Analysis")
+        dark_blue_hex = "#1272d2"
+        st.markdown(
+            f"<h3 style='text-align: center; color: {dark_blue_hex};'>BDO and Issue-wise Analysis</h3>",
+            unsafe_allow_html=True
+        )
+        
         plot_issue_chart(["Block", "Issue"], "BDO and Issue-wise Counts")
 
 
     with sub_tabs[3]:
-        st.subheader("संबंधित नगर निकाय  and Issue-wise Analysis")
+        #st.subheader("संबंधित नगर निकाय  and Issue-wise Analysis")
+        dark_blue_hex = "#1272d2"
+        st.markdown(
+            f"<h3 style='text-align: center; color: {dark_blue_hex};'>संबंधित नगर निकाय and Issue-wise Analysis</h3>",
+            unsafe_allow_html=True
+        )
+        
         plot_issue_chart(["ULD", "Issue"], "ULD and Issue-wise Counts")
 
 
     with sub_tabs[4]:
-        st.subheader("SDM and Issue-wise Analysis")
+        #st.subheader("SDM and Issue-wise Analysis")
+        dark_blue_hex = "#1272d2"
+        st.markdown(
+            f"<h3 style='text-align: center; color: {dark_blue_hex};'>SDM and Issue-wise Analysis</h3>",
+            unsafe_allow_html=True
+        )
+        
         plot_issue_chart(["SDM", "Issue"], "SDM and Issue-wise Counts")
 
 
     with sub_tabs[5]:
-        st.subheader("पुलिस Circle and Issue-wise Analysis")
+        #st.subheader("पुलिस Circle and Issue-wise Analysis")
+        dark_blue_hex = "#1272d2"
+        st.markdown(
+            f"<h3 style='text-align: center; color: {dark_blue_hex};'>पुलिस Circle and Issue-wise Analysis</h3>",
+            unsafe_allow_html=True
+        )
+        
         plot_issue_chart(["Circle", "Issue"], "Circle and Issue-wise Counts")
 
 
     with sub_tabs[6]:
-        st.subheader("📅 Daily Issue-wise (Date-wise Analysis)")
-
+        #st.subheader("📅 Daily Issue-wise (Date-wise Analysis)")
+        dark_blue_hex = "#1272d2"
+        st.markdown(
+            f"<h3 style='text-align: center; color: {dark_blue_hex};'>📅 Daily Issue-wise (Date-wise Analysis)</h3>",
+            unsafe_allow_html=True
+        )
+        
         # ============================================================
         # ⏰ Daily Submission Chart (Stacked: हाँ as base + Issues)
         # ============================================================
 
         st.subheader("Daily Submissions – Combined Patrol Overview")
-
+        dark_blue_hex = "#1272d2"
+        st.markdown(
+            f"<h4 style='text-align: center; color: {dark_blue_hex};'>Daily Submissions – Combined Patrol Overview</h4>",
+            unsafe_allow_html=True
+        )
+        
         # --- Layout: selector (left) and chart (right) ---
         left_col, right_col = st.columns([1.2, 6])
 
@@ -1142,8 +1187,13 @@ with tabs[1]:
         # ============================================================
 
         st.markdown("---")
-        st.markdown("### 📋 Daily Data (Pivoted Summary)")
-
+        #st.markdown("### 📋 Daily Data (Pivoted Summary)")
+        dark_blue_hex = "#1272d2"
+        st.markdown(
+            f"<h3 style='text-align: center; color: {dark_blue_hex};'>📋 Daily Data (Pivoted Summary)</h3>",
+            unsafe_allow_html=True
+        )
+        
         if not daily.empty:
             # ✅ Ensure Status_Label exists
             if "Status_Label" not in daily.columns:
@@ -1189,8 +1239,13 @@ with tabs[1]:
         # ============================================================
         # ⏰ Hourly Submission Chart (Stacked: हाँ as base + Issues)
         # ============================================================
-        st.subheader("Hourly Submissions – Combined Patrol Overview")
-
+        #st.subheader("Hourly Submissions – Combined Patrol Overview")
+        dark_blue_hex = "#1272d2"
+        st.markdown(
+            f"<h3 style='text-align: center; color: {dark_blue_hex};'>Hourly Submissions – Combined Patrol Overview</h3>",
+            unsafe_allow_html=True
+        )
+        
         # --- Layout: left (selector) + right (chart) ---
         left_col, right_col = st.columns([1.2, 6])
 
@@ -1348,7 +1403,13 @@ with tabs[1]:
         # 📊 Data Table (Pivoted Hourly Data)
         # ============================================================
         st.markdown("---")
-        st.markdown("### 📋 Hourly Data (Pivoted Summary)")
+        #st.markdown("### 📋 Hourly Data (Pivoted Summary)")
+        dark_blue_hex = "#1272d2"
+        st.markdown(
+            f"<h3 style='text-align: center; color: {dark_blue_hex};'>📋 Hourly Data (Pivoted Summary)</h3>",
+            unsafe_allow_html=True
+        )
+        
 
         if not hourly.empty:
             # ✅ Ensure Status_Label exists
@@ -1395,7 +1456,13 @@ with tabs[1]:
 
 # ------------------- TAB: Map -------------------
 with tabs[2]:
-    st.header("Hotspot Map (Issue-wise clusters)")
+    #st.header("Hotspot Map (Issue-wise clusters)")
+    dark_blue_hex = "#1272d2"
+        st.markdown(
+            f"<h3 style='text-align: center; color: {dark_blue_hex};'>Hotspot Map (Issue-wise clusters)</h3>",
+            unsafe_allow_html=True
+        )
+        
 
     # controls for cluster size and min points (as requested)
     col1, col2 = st.columns([1,1])
@@ -1436,7 +1503,13 @@ with tabs[2]:
 
 # ---------------- Overview Tab ---------------- #
 with tabs[3]:
-    st.title("Overview Dashboard")
+    #st.title("Overview Dashboard")
+    dark_blue_hex = "#1272d2"
+        st.markdown(
+            f"<h3 style='text-align: center; color: {dark_blue_hex};'>Overview Dashboard</h3>",
+            unsafe_allow_html=True
+        )
+    
 
     daily_counts = df.groupby(["Date", "Status"]).size().reset_index(name="Count")
     
@@ -1496,8 +1569,13 @@ with tabs[3]:
 # -----------------------------------------------
 import io
 st.markdown("---")
-st.markdown("##### 📁 Download Full Google Sheet Data")
-
+#st.markdown("##### 📁 Download Full Google Sheet Data")
+dark_blue_hex = "#1272d2"
+        st.markdown(
+            f"<h3 style='text-align: center; color: {dark_blue_hex};'>📁 Download Full Google Sheet Data</h3>",
+            unsafe_allow_html=True
+        )
+    
 # Assume your full dataframe is df_raw or df
 data_to_download =  df.copy()
 
