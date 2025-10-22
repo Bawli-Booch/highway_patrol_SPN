@@ -1458,10 +1458,10 @@ with tabs[1]:
 with tabs[2]:
     #st.header("Hotspot Map (Issue-wise clusters)")
     dark_blue_hex = "#1272d2"
-        st.markdown(
-            f"<h3 style='text-align: center; color: {dark_blue_hex};'>Hotspot Map (Issue-wise clusters)</h3>",
-            unsafe_allow_html=True
-        )
+    st.markdown(
+        f"<h3 style='text-align: center; color: {dark_blue_hex};'>Hotspot Map (Issue-wise clusters)</h3>",
+        unsafe_allow_html=True
+    )
         
 
     # controls for cluster size and min points (as requested)
