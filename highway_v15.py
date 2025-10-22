@@ -412,8 +412,11 @@ with tabs[0]:
     now_ist = datetime.now(ZoneInfo("Asia/Kolkata"))
     # Remove timezone info (make tz-naive)
     now = now_ist.replace(tzinfo=None)
-    yesterday_8pm = (now - timedelta(days=1)).replace(hour=20, minute=0, second=0, microsecond=0)
+    # yesterday at 8 PM (based on today's date)
+    yesterday_date = (now.date() - timedelta(days=1))
+    yesterday_8pm = datetime.combine(yesterday_date, datetime.min.time()).replace(hour=20)
 
+    
     # Ensure dataframe is tz-naive
     df["Created_At"] = pd.to_datetime(df["Created_At"], errors="coerce")
 
@@ -449,11 +452,44 @@ with tabs[0]:
     center_lon = all_points["Longitude"].mean()
 
     #conditional hover data display
-    # Show Issue_Details only if Status is "Not Okay"
-    all_points["Display_Issue_Details"] = all_points.apply(
-        lambda x: x["Issue_Details"] if x["Issue"] == "अन्य" and x["Issue_Details"] else None,
-        axis=1
-    )
+    #display only non empty fields on hover
+
+    # 1️⃣ Build a dynamic hover text for each row
+    def make_hover_text(row):
+        lines = [f"<b>Duty Thana: {row['Agent']}</b>"]  # always
+        lines.append(f"Route: {row['Route']}")
+        lines.append(f"Status: {row['Status']}")
+        
+        # add officials only for “नहीं”
+        if row["Status"] == "नहीं":
+            parts = []
+            if row["Issue"]: 
+                lines.append(f"Issue: {row['Issue']}")
+                if row["Issue"] == "अन्य":    
+                    lines.append(f"Issue Details: {row['Issue_Details']}")           
+            if row["Incident_Station"]: parts.append(f"Station: {row['Incident_Station']}")
+            if row["BDO"]: parts.append(f"BDO: {row['BDO']}")
+            if row["ULD"]: parts.append(f"ULD: {row['ULD']}")
+            if row["SDM"]: parts.append(f"SDM: {row['SDM']}")
+            if row["Circle"]: parts.append(f"Circle: {row['Circle']}")
+            #debug la long
+            if row["Latitude"]: 
+                lines.append(f"Latitude: {row['Latitude']}, Longitude: {row['Longitude']}")
+                
+            if parts:
+                lines.append(" | ".join(parts)) #all officers in a single row
+
+        lines.append(f"Created: {row['Created_At']}")
+        return "<br>".join(lines)
+
+    all_points["Hover_Text"] = all_points.apply(make_hover_text, axis=1)
+
+    
+    
+    #display only non empty fields on hover
+
+    
+    
 
     # 7️⃣ Build the Plotly map
     fig = px.scatter_mapbox(
@@ -461,23 +497,23 @@ with tabs[0]:
         lat="Latitude",
         lon="Longitude",
         color="Status",
-        hover_name="Incident_Station",
-        hover_data={
-            "Agent": True,
-            "Status": True,
-            "Issue": True,
-            "Display_Issue_Details": True,
-            "BDO": True,
-            "Circle": True,
-            "SDM": True,
-            "ULD": True,
-            "Created_At": True
-        },
+        #hover_name="Agent",
         color_discrete_map=issue_colors,
         size_max=12,
         zoom=9,
         height=650,
     )
+
+    #hover update
+    # 3️⃣ Use the custom text for hover
+    fig.update_traces(
+        text=all_points["Hover_Text"],
+        hovertemplate="%{text}<extra></extra>",  # use only our text
+        marker=dict(size=10)
+    )
+    #hover update
+
+
     # ✅ Increase point marker size
     fig.update_traces(
         marker=dict(
