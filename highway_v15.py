@@ -431,14 +431,33 @@ with tabs[0]:
     df_yes = df_patrol[df_patrol["Status"].astype(str).str.strip() == "हाँ"].copy()
 
     #diplay overview summary
-    col1, col2, col3 = st.columns(3)
+    st.markdown("---")
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.markdown(f"""
         📅 Showing records:  \n\
         **{yesterday_8pm.strftime('%d %b %Y %I:%M %p')}** → **{now.strftime('%d %b %Y %I:%M %p')}**
         """)
-    col2.metric(f"Total patrol records: ", len(df_patrol))
-    col3.metric(f"Total Issues Reported: ", len(df_no))
+    #col2.metric(f"Total patrol records: ", len(df_patrol))
+    with col2:
+        st.markdown(f"""
+        Total patrol records: <br>
+        <h1 style='text-align: left; color: blue; margin-top: -2rem; margin-bottom: -5rem;'>{len(df_patrol)}</h1>
+        """,
+        unsafe_allow_html=True)
+    #col3.metric(f"Total Issues Reported: ", len(df_no))
+    with col3:
+        st.markdown(f"""
+        Total Issues Reported: <br>
+        <h1 style='text-align: left; color: red; margin-top: -2rem; margin-bottom: -5rem;'>{len(df_no)}</h1>
+        """,
+        unsafe_allow_html=True)
+    with col4:
+        st.markdown(f"""
+        Police Station on Patrol Duty: <br>
+        <h3 style='text-align: left; color: blue; margin-top: -2rem; margin-bottom: -5rem;'>{df_patrol["Agent"].unique()}</h3>
+        """,
+        unsafe_allow_html=True)
     
     
     # 5️⃣ Color coding by Issue & Status
