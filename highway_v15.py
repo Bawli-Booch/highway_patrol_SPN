@@ -485,6 +485,10 @@ with tabs[0]:
     #conditional hover data display
     #display only non empty fields on hover
 
+    #debug
+    st.write("✅ all_points shape:", all_points.shape)
+    st.write("✅ all_points columns:", list(all_points.columns))
+
     # 1️⃣ Build a dynamic hover text for each row
     def make_hover_text(row):
         lines = [f"<b>Duty Thana: {row['Agent']}</b>"]  # always
