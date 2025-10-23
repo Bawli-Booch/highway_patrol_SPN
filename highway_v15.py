@@ -139,7 +139,7 @@ display_columns = [
 ]
 
 
-@st.cache_data(ttl=13000)
+@st.cache_data(ttl=130)
 def load_data():
     
     # --- Load data from Google Sheet ---
