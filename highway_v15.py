@@ -488,27 +488,32 @@ with tabs[0]:
     def make_hover_text(row):
         lines = [f"<b>Duty Thana: {row['Agent']}</b>"]  # always
         lines.append(f"Route: {row['Route']}")
-        lines.append(f"Status: {row['Status']}")
         
+        lines.append(f"सब ठीक?: {row['Status']}")
+            
         # add officials only for “नहीं”
         if row["Status"] == "नहीं":
+            
+            lines.append(f"Checkpoint: {row['Checkpoint']}")
+            lines.append(f"Agent_Name: {row['Agent_Name']}")
+        
             parts = []
             if row["Issue"]: 
                 lines.append(f"Issue: {row['Issue']}")
                 if row["Issue"] == "अन्य":    
-                    lines.append(f"Issue Details: {row['Issue_Details']}")           
+                    lines.append(f"Issue Details: {row['Issue_Details']}")  
+            parts.append(f"Officers concerned ")
             if row["Incident_Station"]: parts.append(f"Station: {row['Incident_Station']}")
             if row["BDO"]: parts.append(f"BDO: {row['BDO']}")
             if row["ULD"]: parts.append(f"ULD: {row['ULD']}")
             if row["SDM"]: parts.append(f"SDM: {row['SDM']}")
-            if row["Circle"]: parts.append(f"Circle: {row['Circle']}")
+            if row["Circle"]: parts.append(f"Circle: {row['Circle']}")    
+            if parts:
+                lines.append(" | ".join(parts)) #all officers in a single row
             #debug la long
             if row["Latitude"]: 
                 lines.append(f"Latitude: {row['Latitude']}, Longitude: {row['Longitude']}")
-                
-            if parts:
-                lines.append(" | ".join(parts)) #all officers in a single row
-
+            
         lines.append(f"Created: {row['Created_At']}")
         return "<br>".join(lines)
 
