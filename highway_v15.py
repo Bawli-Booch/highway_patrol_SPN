@@ -112,7 +112,7 @@ st.markdown(
 )
 
 
-st.set_page_config(page_title="Highway Dashboard V15 - ui", layout="wide")
+st.set_page_config(page_title="Highway Dashboard V16 github - ui", layout="wide")
 
 #global variables
 # --- Step 5: Rename for uniform column naming ---
@@ -135,7 +135,7 @@ rename_map = {
 display_columns = [
     "Created_At", "Date", "Time", "Agent", "Status", "Issue", "Police_Station",
     "Circle", "Block", "ULD", "SDM", "Route",
-    "Latitude", "Longitude"
+    "Latitude", "Longitude", "Created_At"
 ]
 
 
@@ -571,24 +571,91 @@ with tabs[0]:
         legend=dict(
             orientation="v",
             yanchor="top",
-            y=0.98,
+            y=0.9,
             xanchor="left",
-            x=1.02,
+            x=0.8,
             bgcolor="rgba(255,255,255,0.85)",
             bordercolor="rgba(0,0,0,0.2)",
             borderwidth=1,
+            itemwidth=120,
             font=dict(size=14)
         ),
     )
 
-    # 8️⃣ Render map in bordered frame
+    # =====================================================
+    # 🗺️ Render Map in Bordered Frame (with Zoom Buttons)
+    # =====================================================
     st.markdown("---")
-    border_html = f"""
-    <div style="border:4px solid #007ACC;border-radius:12px;overflow:hidden;margin-bottom:15px;">
-        {fig.to_html(include_plotlyjs='cdn', full_html=False, config={'displayModeBar': False})}
+
+    custom_html = f"""
+    <div style="position: relative; border:4px solid #007ACC; border-radius:10px; overflow:hidden; padding:6px; background:#fff;">
+
+    <!-- Plotly Map -->
+    <div id="plotly-map" style="height:700px; width:100%;">
+        {fig.to_html(include_plotlyjs='cdn', full_html=False, div_id='plotly-map')}
+    </div>
+
+    <!-- Zoom Buttons -->
+    <div style="
+        position: absolute;
+        top: 30px;
+        left: 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 999;
+    ">
+        <button id="zoom-in" style="
+            background-color: white;
+            border: 2px solid #007ACC;
+            color: #007ACC;
+            font-size: 24px;
+            border-radius: 6px;
+            width: 46px;
+            height: 46px;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        ">+</button>
+
+        <button id="zoom-out" style="
+            background-color: white;
+            border: 2px solid #007ACC;
+            color: #007ACC;
+            font-size: 28px;
+            border-radius: 6px;
+            width: 46px;
+            height: 46px;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        ">−</button>
+    </div>
+
+    <!-- JavaScript for Zoom Buttons -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {{
+            const mapDiv = document.getElementById('plotly-map');
+            if (!mapDiv) return;
+
+            function getCurrentZoom() {{
+                const layout = mapDiv._fullLayout || {{}};
+                const mapbox = layout.mapbox || {{}};
+                return mapbox.zoom || 9;
+            }}
+
+            function zoom(delta) {{
+                const newZoom = getCurrentZoom() + delta;
+                Plotly.relayout(mapDiv, {{ 'mapbox.zoom': newZoom }});
+            }}
+
+            document.getElementById('zoom-in').addEventListener('click', () => zoom(+0.5));
+            document.getElementById('zoom-out').addEventListener('click', () => zoom(-0.5));
+        }});
+    </script>
     </div>
     """
-    html(border_html, height=720)
+
+    from streamlit.components.v1 import html as st_html
+    st_html(custom_html, height=740)
 
 
     
@@ -761,7 +828,19 @@ with tabs[0]:
     # Show centered, formatted table
     #st.dataframe(df_center_numeric(df_display), use_container_width=True)
     
-    
+    #debug
+    from collections import Counter
+
+    def make_unique_columns(cols):
+        counter = Counter()
+        new_cols = []
+        for col in cols:
+            counter[col] += 1
+            new_cols.append(f"{col}_{counter[col]-1}" if counter[col] > 1 else col)
+        return new_cols
+
+    df_display.columns = make_unique_columns(df_display.columns)
+
     st.dataframe(
         df_center_numeric(df_display),
         width='content',
@@ -1462,52 +1541,391 @@ with tabs[1]:
         
 
 # ------------------- TAB: Map -------------------
+
 with tabs[2]:
-    #st.header("Hotspot Map (Issue-wise clusters)")
+    
     dark_blue_hex = "#1272d2"
     st.markdown(
-        f"<h3 style='text-align: center; color: {dark_blue_hex};'>Hotspot Map (Issue-wise clusters)</h3>",
+        f"<h5 style='text-align: center; color: {dark_blue_hex};'>🗺️ Hotspot Map (Issue-wise Clusters)</h5>",
         unsafe_allow_html=True
     )
-        
-
-    # controls for cluster size and min points (as requested)
-    col1, col2 = st.columns([1,1])
+    
+    # =====================================================
+    # ⚙️ Controls for cluster size and min points
+    # =====================================================
+    col1, col2, col3 = st.columns([1, 1,1])
     grid_m = col1.slider("Cluster grid size (m)", 100, 2000, 500, 50)
     min_pts = col2.slider("Min points per cluster", 2, 10, 5, 1)
+    cluster_summary, df_map_filtered = compute_issue_clusters(
+        df, grid_m=grid_m, min_points=min_pts, status_filter="नहीं"
+    )
 
-    cluster_summary, df_map_filtered = compute_issue_clusters(df, grid_m=grid_m, min_points=min_pts, status_filter="नहीं")
+    
     if cluster_summary.empty:
-        st.warning("No clusters with these settings.")
+        with col3:
+            st.warning("No clusters with these settings.")
+        
     else:
-        st.write("Found clusters:", len(cluster_summary))
-        # Plot quick Plotly map (fast) with color by Issue and sizes by Count
-        issue_color_map = {"छुट्टा पशु":"red", "सड़क पर पार्किंग":"blue", "दुर्घटना":"green"}
-        cluster_summary["MarkerSize"] = np.interp(cluster_summary["Count"], [cluster_summary["Count"].min(), cluster_summary["Count"].max()], [8,50])
-        fig_map = px.scatter_mapbox(cluster_summary, lat="Latitude", lon="Longitude",
-                                    color="Issue", size="MarkerSize",
-                                    color_discrete_map=issue_color_map,
-                                    hover_data=["cluster_id","Count"],
-                                    zoom=9, height=650, mapbox_style="open-street-map")
-        fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-        # Render with border by converting to HTML (ensures border wraps)
-        border_html = f"""
-        <div style="border:4px solid #007ACC;border-radius:10px;overflow:hidden;padding:6px;background:#fff;">
-            {fig_map.to_html(include_plotlyjs='cdn', full_html=False)}
+        with col3:
+            st.markdown(
+                f"✅ Found {len(cluster_summary)} clusters",
+                unsafe_allow_html=True
+            )
+        # tighten spacing before next section (map)
+        st.markdown("<div style='margin-top:-5rem;'></div>", unsafe_allow_html=True)
+        # =====================================================
+        # 🎨 Prepare map data
+        # =====================================================
+        issue_color_map = {"छुट्टा पशु": "red", "सड़क पर पार्किंग": "blue", "सड़क दुर्घटना": "green", "अन्य": "black"}
+        cluster_summary["MarkerSize"] = np.interp(
+            cluster_summary["Count"],
+            [cluster_summary["Count"].min(), cluster_summary["Count"].max()],
+            [8, 50],
+        )
+
+        # Merge extra info for hover text
+        if "Agent" not in cluster_summary.columns and "cluster_id" in df_map_filtered.columns:
+            cluster_summary = cluster_summary.merge(
+                df_map_filtered[
+                    [
+                        "cluster_id",
+                        "Route",
+                        "Status",
+                        "Issue_Details",
+                        "Incident_Station",
+                        "BDO",
+                        "ULD",
+                        "SDM",
+                        "Circle",
+                    ]
+                ],
+                on="cluster_id",
+                how="left",
+            )
+
+        # =====================================================
+        # 🧩 Create custom hover text
+        # =====================================================
+        def make_hover_text(row):
+            lines = [f"<b>Incident Thana: {row['Incident_Station']} — {row['Issue']}</b>"]
+            lines.append(f"Route: {row.get('Route', '')}")
+            lines.append(f"Number of events: {row.get('Count', '')}")
+            if row.get("BDO") or row.get("ULD") or row.get("SDM") or row.get("Circle"):
+                officers = [
+                    f"BDO: {row.get('BDO', '')}",
+                    f"ULD: {row.get('ULD', '')}",
+                    f"SDM: {row.get('SDM', '')}",
+                    f"Circle: {row.get('Circle', '')}",
+                ]
+                lines.append(" | ".join([o for o in officers if o.split(': ')[1]]))
+            if row.get("Latitude") and row.get("Longitude"):
+                lines.append(f"📍 ({row['Latitude']}, {row['Longitude']})")
+            return "<br>".join(lines)
+
+        cluster_summary["Hover_Text"] = cluster_summary.apply(make_hover_text, axis=1)
+
+        # =====================================================
+        # 🗺️ Build unique map layer
+        # =====================================================
+        unique_cluster_issue = df_map_filtered[
+            ["cluster_id", "Latitude", "Longitude", "Issue"]
+        ].drop_duplicates()
+
+        valid_cluster_ids = cluster_summary["cluster_id"].unique()
+        unique_cluster_issue = unique_cluster_issue[
+            unique_cluster_issue["cluster_id"].isin(valid_cluster_ids)
+        ]
+
+        unique_cluster_issue = unique_cluster_issue.merge(
+            cluster_summary[
+                [
+                    "cluster_id",
+                    "Route",
+                    "Status",
+                    "Count",
+                    "MarkerSize",
+                    "Issue_Details",
+                    "Incident_Station",
+                    "BDO",
+                    "ULD",
+                    "SDM",
+                    "Circle",
+                    "Hover_Text",
+                ]
+            ],
+            on="cluster_id",
+            how="left",
+        )
+
+        # =====================================================
+        # 🗺️ Plotly Map
+        # =====================================================
+        import plotly.express as px
+
+        fig = px.scatter_mapbox(
+            unique_cluster_issue,
+            lat="Latitude",
+            lon="Longitude",
+            color="Issue",
+            size="MarkerSize",
+            color_discrete_map=issue_color_map,
+            zoom=9,
+            height=550,
+        )
+
+        fig.update_traces(
+            text=unique_cluster_issue["Hover_Text"],
+            hovertemplate="%{text}<extra></extra>",
+            marker=dict(sizemode="area", sizeref=0.07, sizemin=10, opacity=0.65),
+        )
+
+        fig.update_layout(
+            mapbox_style="open-street-map",
+            margin={"r": 0, "t": 0, "l": 0, "b": 0},
+            legend=dict(
+                orientation="h",
+                yanchor="top",
+                y=1,
+                xanchor="left",
+                x=0,
+                bgcolor="rgba(255,255,255,0.85)",
+                bordercolor="rgba(0,0,0,0.2)",
+                borderwidth=5,
+                itemwidth=200,
+                font=dict(size=13),
+                itemclick="toggleothers",
+            ),
+        )
+
+
+        #display legend
+        # Simple legend row above map
+        st.markdown("---")
+        
+        cols = st.columns(len(issue_color_map))
+
+        for col, (issue, color) in zip(cols, issue_color_map.items()):
+            with col:
+                st.markdown(
+                    f"<div style='display:flex;align-items:center;gap:8px;'>"
+                    f"<div style='width:18px;height:18px;background:{color};border:1px solid #000;border-radius:3px;'></div>"
+                    f"<span style='font-size:15px;font-weight:500;'>{issue}</span>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+
+
+
+        
+        #map with custom zoom buttons
+        # ---------------------------
+        # ✅ Custom Zoom Buttons Layer
+        # ---------------------------
+        custom_html = f"""
+        <div style="position: relative;">
+        <div id="plotly-map" style="height:600px; width:95%; border:4px solid #007ACC;border-radius:10px;overflow:hidden;padding:6px;background:#fff;">
+            {fig.to_html(include_plotlyjs='cdn', full_html=False, div_id='plotly-map')}
+        </div>
+        
+        <!-- Zoom Buttons -->
+        <div style="
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 999;
+        ">
+            <button id="zoom-in" style="
+                background-color: white;
+                border: 2px solid #007ACC;
+                color: #007ACC;
+                font-size: 24px;
+                border-radius: 6px;
+                width: 42px;
+                height: 42px;
+                cursor: pointer;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            ">+</button>
+
+            <button id="zoom-out" style="
+                background-color: white;
+                border: 2px solid #007ACC;
+                color: #007ACC;
+                font-size: 28px;
+                border-radius: 6px;
+                width: 42px;
+                height: 42px;
+                cursor: pointer;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            ">−</button>
+        </div>
+
+        <!-- JS: Connect Buttons to Plotly Map -->
+        <script>
+            const mapDiv = document.getElementById('plotly-map');
+            if (mapDiv) {{
+            const plot = mapDiv.children[0];
+            function zoom(delta) {{
+                Plotly.relayout(mapDiv, {{
+                'mapbox.zoom': (mapDiv._fullLayout.mapbox.zoom || 9) + delta
+                }});
+            }}
+            document.getElementById('zoom-in').onclick = () => zoom(+0.5);
+            document.getElementById('zoom-out').onclick = () => zoom(-0.5);
+            }}
+        </script>
         </div>
         """
-        html(border_html, height=720)
 
-        # Below the map: show the raw rows for the top N selected cluster (no click-handling here)
+        from streamlit.components.v1 import html as st_html
+        st_html(custom_html, height=650)
+
+        st.caption(
+            f"🗺️ Showing {len(unique_cluster_issue['cluster_id'].unique())} unique cluster–issue combinations (station overlaps removed)."
+        )
+
+        #download cluster data
+        
+        
+        # =====================================================
+        # 📥 DOWNLOAD CLUSTER SUMMARY (Unique per cluster_id)
+        # =====================================================
+        import io
+        
+        # 1️⃣ Work on a copy of your map dataframe
+        map_data_to_download = unique_cluster_issue.copy()
+
+        # 2️⃣ Compute total count of rows per cluster_id
+        map_data_to_download["Cluster_Total_Count"] = map_data_to_download.groupby("cluster_id")["cluster_id"].transform("count")
+
+        # 3️⃣ Keep only the first entry per cluster_id
+        map_data_to_download = map_data_to_download.drop_duplicates(subset="cluster_id", keep="first")
+
+        # 4️⃣ Remove Hover_Text column if it exists
+        if "Hover_Text" in map_data_to_download.columns:
+            map_data_to_download = map_data_to_download.drop(columns=["Hover_Text"])
+
+        # 5️⃣ Convert to Excel in-memory
+        excel_buffer = io.BytesIO()
+        with pd.ExcelWriter(excel_buffer, engine="openpyxl") as writer:
+            map_data_to_download.to_excel(writer, index=False, sheet_name="Cluster Summary")
+
+        excel_buffer.seek(0)
+
+        # 6️⃣ Streamlit download button
+        st.download_button(
+            label="📥 Download Cluster Summary (Excel)",
+            data=excel_buffer,
+            file_name="cluster_summary_unique.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="download_cluster_summary_excel"
+        )
+
+
+        # =====================================================
+        # 📊 CLUSTER SUMMARY TABLE (Aligned with Map)
+        # =====================================================
+
         st.markdown("---")
-        st.markdown("### Cluster summary (pivoted Agent x Issue) — center aligned numbers")
-        pivot = (df_map_filtered[df_map_filtered["cluster_id"].isin(cluster_summary["cluster_id"])]
-                 .groupby(["Agent","Issue"]).size().reset_index(name="Count")
-                 .pivot(index="Agent", columns="Issue", values="Count").fillna(0).astype(int).reset_index())
-        st.dataframe(df_center_numeric(pivot), width='stretch')
-        csv = pivot.to_csv(index=False).encode("utf-8")
-        st.download_button("📥 Download pivoted", csv, "pivoted.csv", "text/csv")
+        st.markdown("### 📊 Cluster Summary (Visible on Map)")
 
+        # ✅ Use only clusters currently visible on map
+        map_df = df_map_filtered[df_map_filtered["cluster_id"].isin(valid_cluster_ids)]
+        map_unique = map_df.drop_duplicates(subset=["cluster_id", "Incident_Station", "Issue"])
+
+        # ✅ Pivot: cluster counts per Station × Issue
+        pivot_clusters = (
+            map_unique.groupby(["Incident_Station", "Issue"])["cluster_id"]
+            .nunique()
+            .reset_index(name="Cluster_Count")
+            .pivot(index="Incident_Station", columns="Issue", values="Cluster_Count")
+            .fillna(0)
+            .astype(int)
+        )
+
+        # ✅ Add totals
+        pivot_clusters["Total"] = pivot_clusters.sum(axis=1)
+        pivot_clusters.loc["Total"] = pivot_clusters.sum(axis=0)
+        pivot_clusters = pivot_clusters.reset_index().rename(columns={"Incident_Station": "Incident Station"})
+
+        # ✅ Display table
+        st.dataframe(df_center_numeric(pivot_clusters), use_container_width=True)
+
+        # ✅ Download button (unique key)
+        csv = pivot_clusters.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "📥 Download Cluster Summary Table",
+            csv,
+            "cluster_summary_table.csv",
+            "text/csv",
+            key="download_cluster_summary_table",
+        )
+
+        # =====================================================
+        # 📈 VISUALIZATION TOGGLE — Total vs Issue-wise
+        # =====================================================
+        st.markdown("---")
+        
+        st.markdown("### 📈 Visualization Mode")
+        st.markdown(
+            "<style>div.row-widget.stRadio > div{flex-direction:row; gap:1rem;}</style>",
+            unsafe_allow_html=True,
+        )
+
+        chart_mode = st.radio(
+            "Select View Mode:",
+            ["Cumulative Total", "Issue-wise Breakdown"],
+            horizontal=True,
+            index=0,
+        )
+        st.markdown("---")
+        
+        # =====================================================
+        # 📊 CONDITIONAL CHART
+        # =====================================================
+        if chart_mode == "Cumulative Total":
+            st.markdown("#### 🔹 Total Clusters per Station (Cumulative)")
+
+            station_totals = pivot_clusters[
+                pivot_clusters["Incident Station"] != "Total"
+            ][["Incident Station", "Total"]]
+
+            st.bar_chart(
+                station_totals.set_index("Incident Station")["Total"],
+                use_container_width=True,
+            )
+
+        else:
+            st.markdown("#### 🔹 Issue-wise Cluster Breakdown per Station")
+
+            issue_df = (
+                pivot_clusters[pivot_clusters["Incident Station"] != "Total"]
+                .drop(columns=["Total"])
+                .melt(id_vars="Incident Station", var_name="Issue", value_name="Cluster Count")
+            )
+
+            fig = px.bar(
+                issue_df,
+                x="Incident Station",
+                y="Cluster Count",
+                color="Issue",
+                barmode="group",  # side-by-side
+                text_auto=True,
+                title="Cluster Distribution per Station by Issue",
+            )
+
+            fig.update_layout(
+                xaxis_title="Incident Station",
+                yaxis_title="Cluster Count",
+                legend_title="Issue Type",
+                bargap=0.15,
+                title_x=0.5,
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
+    
 # ---------------- Overview Tab ---------------- #
 with tabs[3]:
     #st.title("Overview Dashboard")
